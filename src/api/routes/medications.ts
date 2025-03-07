@@ -10,7 +10,7 @@ router.get("/check-availability/:medication", async (req: Request, res: Response
     const { location } = req.query;
     
     // Mock database of medications
-    const mockMedicationDatabase = {
+    const mockMedicationDatabase: Record<string, any> = {
       "acetaminophen": {
         available: true,
         locations: ["Pharmacy A", "Pharmacy B", "Pharmacy C"],
@@ -32,7 +32,7 @@ router.get("/check-availability/:medication", async (req: Request, res: Response
     await new Promise((resolve) => setTimeout(resolve, 800));
     
     const medicationKey = medication.toLowerCase();
-    const medicationInfo = mockMedicationDatabase[medicationKey as keyof typeof mockMedicationDatabase];
+    const medicationInfo = mockMedicationDatabase[medicationKey];
     
     if (medicationInfo) {
       return res.status(200).json({
@@ -63,7 +63,7 @@ router.get("/details/:medication", async (req: Request, res: Response) => {
     const { medication } = req.params;
     
     // Mock medication details database
-    const mockMedicationDetails = {
+    const mockMedicationDetails: Record<string, any> = {
       "acetaminophen": {
         genericName: "Acetaminophen",
         brandNames: ["Tylenol", "Panadol"],
@@ -88,7 +88,7 @@ router.get("/details/:medication", async (req: Request, res: Response) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     
     const medicationKey = medication.toLowerCase();
-    const details = mockMedicationDetails[medicationKey as keyof typeof mockMedicationDetails];
+    const details = mockMedicationDetails[medicationKey];
     
     if (details) {
       return res.status(200).json({
