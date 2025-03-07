@@ -1,10 +1,10 @@
 
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 
 const router = Router();
 
 // This route would check medication availability from a dataset or external API
-router.get("/check-availability/:medication", async (req, res) => {
+router.get("/check-availability/:medication", async (req: Request, res: Response) => {
   try {
     const { medication } = req.params;
     const { location } = req.query;
@@ -46,7 +46,7 @@ router.get("/check-availability/:medication", async (req, res) => {
 });
 
 // Route to get medication details from the dataset
-router.get("/details/:medication", async (req, res) => {
+router.get("/details/:medication", async (req: Request, res: Response) => {
   try {
     const { medication } = req.params;
     
