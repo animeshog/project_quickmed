@@ -10,8 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Activity, ArrowRight, Home, LogOut, UsersRound } from "lucide-react";
 import { motion } from "motion/react";
-import { ArrowRight, Brain, Home, LogOut, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -152,10 +152,8 @@ const Dashboard = () => {
 			<header className="bg-white shadow-sm">
 				<div className="container mx-auto px-4 py-4 flex justify-between items-center">
 					<div className="flex items-center">
-						<Brain className="h-6 w-6 text-blue-600 mr-2" />
-						<h1 className="text-xl font-semibold text-gray-800">
-							AI Health Advisor
-						</h1>
+						<Activity className="h-6 w-6 text-blue-600 mr-2" />
+						<h1 className="text-xl font-semibold text-gray-800">QuickMed</h1>
 					</div>
 					<div className="flex gap-2">
 						<Button variant="ghost" size="sm" onClick={() => navigate("/")}>

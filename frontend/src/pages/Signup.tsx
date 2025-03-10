@@ -1,3 +1,4 @@
+import AnimatedBackground from "@/components/AnimatedBackground";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -10,8 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "motion/react";
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
+import { motion } from "motion/react";
 import * as React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -68,15 +69,22 @@ const Signup = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
+		<div className="min-h-screen bg-gradient-to-b from-blue-50 to-white relative overflow-hidden flex items-center justify-center p-4">
+			<AnimatedBackground intensity="low" />
+
 			<motion.div
-				className="w-full max-w-md"
+				className="w-full max-w-md relative z-10"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
 			>
 				<Card className="border-none shadow-lg">
 					<CardHeader className="space-y-1">
+						<div className="text-center">
+							<h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-500 to-indigo-700 mb-1">
+								QuickMed
+							</h1>
+						</div>
 						<CardTitle className="text-2xl font-bold text-center">
 							Create an Account
 						</CardTitle>
