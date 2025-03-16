@@ -1,16 +1,19 @@
 import cors from "cors";
-import express, { Router } from "express";
+import express from "express";
 import { gptRouter } from "./routes/gpt";
 import { medicationsRouter } from "./routes/medications";
+import bodyParser from "body-parser";
+import userRouter from "../routes/userRoutes";
 
-const router = Router();
+const app = express();
 
-// Apply middleware
-router.use(express.json());
-router.use(cors());
+app.use(bodyParser.urlencoded({extended:true,limit:'35mb',parameterLimit:50000}));
+app.use(express.json());
+app.use(cors());
 
 // Register routes
-router.use("/gpt", gptRouter);
-router.use("/medications", medicationsRouter);
+app.use("/gpt", gptRouter);
+app.use("/medications", medicationsRouter);
+app.use("/user", userRouter);
 
 export default router;
