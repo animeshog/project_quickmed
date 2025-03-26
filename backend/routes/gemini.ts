@@ -4,24 +4,15 @@ import askGemini from "../controllers/geminiControllers"; // Ensure this path is
 const router = Router();
 
 // Helper function to format patient details and symptoms
-const formatInput = (patientDetails: { [key: string]: string }, symptoms: string[]): string => {
-  const detailsString = Object.entries(patientDetails)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(", ");
-  const symptomsString = symptoms.join(", ");
-  return `Demographics: ${detailsString}. Symptoms: ${symptomsString}.`;
-};
 
 // Endpoint for potential cause
 router.post("/cause", async (req: Request, res: Response) => {
   try {
-    const patientDetails: { [key: string]: string } = req.body.patientDetails;
-    const symptoms: string[] = req.body.symptoms;
 
-    const input = formatInput(patientDetails, symptoms);
+    
     const geminiResponse = await askGemini(
-      `I have these symptoms in India. Not a doctor? Fine, just give one potential cause, India-specific, in 30 words max. No disclaimers, no fluff.`,
-      input
+      `I have these symptoms in India. Not a doctor? Fine, just give one potential cause, India-specific. No disclaimers, no fluff.`,
+      (req.body.symptoms as string[]).join(", ")
     );
 
     console.log(geminiResponse);
@@ -40,13 +31,12 @@ router.post("/cause", async (req: Request, res: Response) => {
 // Endpoint for treatment options
 router.post("/treatment", async (req: Request, res: Response) => {
   try {
-    const patientDetails: { [key: string]: string } = req.body.patientDetails;
-    const symptoms: string[] = req.body.symptoms;
+    
 
-    const input = formatInput(patientDetails, symptoms);
+    
     const geminiResponse = await askGemini(
-      `I have these symptoms in India. One treatment option, India-specific, 30 words max. No disclaimers, no fluff.`,
-      input
+      `I have these symptoms in India. One treatment option, India-specific,  No disclaimers, no fluff.`,
+      (req.body.symptoms as string[]).join(", ")
     );
 
     console.log(geminiResponse);
@@ -65,13 +55,11 @@ router.post("/treatment", async (req: Request, res: Response) => {
 // Endpoint for medication suggestions
 router.post("/medication", async (req: Request, res: Response) => {
   try {
-    const patientDetails: { [key: string]: string } = req.body.patientDetails;
-    const symptoms: string[] = req.body.symptoms;
 
-    const input = formatInput(patientDetails, symptoms);
+
     const geminiResponse = await askGemini(
-      `I have these symptoms in India. One Indian medication, 30 words max. No disclaimers, no fluff.`,
-      input
+      `I have these symptoms in India. One Indian medication,  No disclaimers, no fluff.`,
+      (req.body.symptoms as string[]).join(", ")
     );
 
     console.log(geminiResponse);
@@ -90,13 +78,10 @@ router.post("/medication", async (req: Request, res: Response) => {
 // Endpoint for home remedies
 router.post("/home-remedies", async (req: Request, res: Response) => {
   try {
-    const patientDetails: { [key: string]: string } = req.body.patientDetails;
-    const symptoms: string[] = req.body.symptoms;
-
-    const input = formatInput(patientDetails, symptoms);
+  
     const geminiResponse = await askGemini(
-      `I have these symptoms in India. One Indian home remedy, 30 words max. No disclaimers, no fluff.`,
-      input
+      `I have these symptoms in India. One Indian home remedy. No disclaimers, no fluff.`,
+      (req.body.symptoms as string[]).join(", ")
     );
 
     console.log(geminiResponse);
