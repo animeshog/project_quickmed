@@ -16,6 +16,7 @@ import { motion } from "motion/react";
 import * as React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login = () => {
 	const [email, setEmail] = useState("");
@@ -38,23 +39,32 @@ const Login = () => {
 		setIsLoading(true);
 
 		try {
-			// In a real app, this would be an API call to authenticate
-			// This is just a mock for demonstration
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			const response = await axios.post("http://localhost:5000/api/auth/login",{email,password})
+			
+			if(response.status == 200){
+				localStorage.setItem("token",response.data.token);
+				// Mock successful login
+				toast({
+					title: "Success",
+					description: "You have successfully logged in",
+				});
 
-			// Mock successful login
-			toast({
-				title: "Success",
-				description: "You have successfully logged in",
-			});
+				// Navigate to dashboard
+				navigate("/dashboard");
+			}else if(response.status == 400){
+				toast({
+					title: "Failed!",
+					description: "Invalid Email or Password",
+				});
+			}
 
-			// Navigate to dashboard
-			navigate("/dashboard");
+			
 		} catch (error) {
 			toast({
 				title: "Authentication Error",
 				description: "Invalid email or password",
 			});
+			console.log(error)
 		} finally {
 			setIsLoading(false);
 		}

@@ -1,12 +1,12 @@
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,13 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [conditions, setConditions] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,7 +49,7 @@ const Signup = () => {
     if (!fullName || !email || !password || !confirmPassword) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all the basic bits, yeah?",
       });
       return;
     }
@@ -50,7 +57,7 @@ const Signup = () => {
     if (password !== confirmPassword) {
       toast({
         title: "Error",
-        description: "Passwords do not match",
+        description: "Passwords don't match, you know the drill.",
       });
       return;
     }
@@ -58,20 +65,44 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      // In a real app, this would be an API call to create account
-      // This is just a mock for demonstration
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      toast({
-        title: "Account Created",
-        description: "Your account has been created successfully!",
+      const response = await fetch("http://localhost:5000/api/auth/register", { // Assuming your backend register route is at /api/register
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: fullName,
+          email: email,
+          password: password,
+          dob: dob,
+          gender: gender.toLowerCase(), // Convert to lowercase
+          height: Number(height), // Convert to number
+          weight: Number(weight), // Convert to number
+          bloodGroup: bloodGroup,
+          allergies: allergies ? allergies.split(',').map(item => item.trim()) : undefined, // Split into array, trim whitespace
+          conditions: conditions ? conditions.split(',').map(item => item.trim()) : undefined, // Split into array, trim whitespace
+        }),
       });
 
-      navigate("/login");
+      const data = await response.json();
+
+      if (response.status == 201) {
+        toast({
+          title: "Account Created",
+          description: "Sorted! Your account is up and running.",
+        });
+        localStorage.setItem("token",data.token);
+        navigate("/login");
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create account. Have another go?",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create account. Please try again.",
+        description: "Something went belly up. Check your connection, maybe?",
       });
     } finally {
       setIsLoading(false);
@@ -99,7 +130,7 @@ const Signup = () => {
               Create an Account
             </CardTitle>
             <CardDescription className="text-center">
-              Enter your information to create your account
+              Enter your information to get started
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,18 +202,18 @@ const Signup = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth</Label>
-                    <Input id="dob" type="date" />
+                    <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select>
+                    <Select onValueChange={setGender}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        {genders.map((gender) => (
-                          <SelectItem key={gender} value={gender.toLowerCase()}>
-                            {gender}
+                        {genders.map((genderOption) => (
+                          <SelectItem key={genderOption} value={genderOption.toLowerCase()}>
+                            {genderOption}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -193,15 +224,15 @@ const Signup = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="height">Height (cm)</Label>
-                    <Input id="height" type="number" placeholder="175" />
+                    <Input id="height" type="number" placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="weight">Weight (kg)</Label>
-                    <Input id="weight" type="number" placeholder="70" />
+                    <Input id="weight" type="number" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bloodGroup">Blood Group</Label>
-                    <Select>
+                    <Select onValueChange={setBloodGroup}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -221,6 +252,8 @@ const Signup = () => {
                   <Input
                     id="allergies"
                     placeholder="e.g., Peanuts, Penicillin"
+                    value={allergies}
+                    onChange={(e) => setAllergies(e.target.value)}
                   />
                 </div>
 
@@ -228,7 +261,7 @@ const Signup = () => {
                   <Label htmlFor="conditions">
                     Pre-existing Conditions (optional)
                   </Label>
-                  <Input id="conditions" placeholder="e.g., Asthma, Diabetes" />
+                  <Input id="conditions" placeholder="e.g., Asthma, Diabetes" value={conditions} onChange={(e) => setConditions(e.target.value)} />
                 </div>
               </div>
               <Button

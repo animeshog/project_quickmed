@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Results from "./pages/Results";
 import Signup from "./pages/Signup";
+import Profile from "./pages/profile";
 
 // Create a new QueryClient
 const queryClient = new QueryClient({
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/results" element={<Results />} />
           <Route path="/404" element={<NotFound />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </BrowserRouter>

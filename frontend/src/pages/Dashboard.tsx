@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Activity, ArrowRight, Home, LogOut, UsersRound } from "lucide-react";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import ReactMarkdown from 'react-markdown';
 
 const commonSymptoms = [
   "Headache",
@@ -25,6 +27,108 @@ const commonSymptoms = [
   "Shortness of breath",
   "Muscle pain",
   "Chills",
+  "Runny nose",
+  "Sneezing",
+  "Blocked nose",
+  "Loss of appetite",
+  "Diarrhea",
+  "Vomiting",
+  "Abdominal pain",
+  "Heartburn",
+  "Indigestion",
+  "Dizziness",
+  "Lightheadedness",
+  "Weakness",
+  "Joint pain",
+  "Back pain",
+  "Chest pain",
+  "Palpitations",
+  "Skin rash",
+  "Itching",
+  "Hives",
+  "Swelling",
+  "Redness",
+  "Warmth to touch",
+  "Feeling hot",
+  "Feeling cold",
+  "Sweating",
+  "Night sweats",
+  "Difficulty sleeping",
+  "Excessive sleepiness",
+  "Feeling anxious",
+  "Feeling stressed",
+  "Feeling irritable",
+  "Difficulty concentrating",
+  "Memory problems",
+  "Blurred vision",
+  "Double vision",
+  "Eye pain",
+  "Earache",
+  "Tinnitus (ringing in the ears)",
+  "Hearing loss",
+  "Toothache",
+  "Gum pain",
+  "Swollen glands",
+  "Hoarseness",
+  "Wheezing",
+  "Tightness in chest",
+  "Feeling faint",
+  "Tremors",
+  "Numbness",
+  "Tingling",
+  "Changes in taste",
+  "Changes in smell",
+  "Dry mouth",
+  "Excessive thirst",
+  "Frequent urination",
+  "Painful urination",
+  "Blood in urine",
+  "Changes in bowel habits",
+  "Constipation",
+  "Bloating",
+  "Gas",
+  "Feeling full quickly",
+  "Unexplained weight loss",
+  "Unexplained weight gain",
+  "Hair loss",
+  "Dry skin",
+  "Brittle nails",
+  "Feeling restless",
+  "Feeling down",
+  "Loss of interest in activities",
+  "Increased appetite",
+  "Decreased appetite",
+  "Feeling agitated",
+  "Feeling panicky",
+  "Feeling overwhelmed",
+  "Feeling lonely",
+  "Feeling hopeless",
+  "Feeling guilty",
+  "Feeling worthless",
+  "Thoughts of death or suicide",
+  "Increased heart rate",
+  "Increased breathing rate",
+  "Dry eyes",
+  "Watery eyes",
+  "Sensitivity to light",
+  "Sensitivity to sound",
+  "Swollen ankles",
+  "Leg cramps",
+  "Restless legs",
+  "Feeling off-balance",
+  "Clumsiness",
+  "Speech difficulties",
+  "Difficulty swallowing",
+  "Heartburn that wakes you up",
+  "Coughing up blood",
+  "Black, tarry stools",
+  "Severe headache with stiff neck",
+  "Sudden weakness or numbness on one side of the body",
+  "Sudden difficulty speaking or understanding speech",
+  "Sudden difficulty seeing in one or both eyes",
+  "Sudden dizziness or loss of balance",
+  "Severe abdominal pain that comes on suddenly",
+  "Yellowing of the skin or eyes (jaundice)",
 ];
 
 const Dashboard = () => {
@@ -32,13 +136,14 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [symptoms, setSymptoms] = useState("");
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [chatHistory, setChatHistory] = useState([
-    { sender: "AI", message: "Describe your symptoms in detail." },
-  ]);
+  const [analysisResults, setAnalysisResults] = useState({
+    cause: "",
+    treatment: "",
+    medication: "",
+    homeRemedies: "",
+  });
   const [file, setFile] = useState<File | null>(null);
 
   const handleSymptomToggle = (symptom: string) => {
@@ -63,31 +168,26 @@ const Dashboard = () => {
     setLoading(true);
 
     try {
-      // Combine manually entered symptoms with selected ones
       const allSymptoms = [
         ...selectedSymptoms,
         ...(symptoms ? [symptoms] : []),
       ].filter(Boolean);
 
-      // API call to analyze symptoms
-      const response = await fetch("/api/gpt/analyze-symptoms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ symptoms: allSymptoms }),
+      const [causeResponse, treatmentResponse, medicationResponse, homeRemediesResponse] = await Promise.all([
+        axios.post("http://localhost:5000/api/gemini/cause", { symptoms: allSymptoms }),
+        axios.post("http://localhost:5000/api/gemini/treatment", { symptoms: allSymptoms }),
+        axios.post("http://localhost:5000/api/gemini/medication", { symptoms: allSymptoms }),
+        axios.post("http://localhost:5000/api/gemini/home-remedies", { symptoms: allSymptoms }),
+      ]);
+
+      setAnalysisResults({
+        cause: causeResponse.data.responseText,
+        treatment: treatmentResponse.data.responseText,
+        medication: medicationResponse.data.responseText,
+        homeRemedies: homeRemediesResponse.data.responseText,
       });
 
-      if (!response.ok) throw new Error("Failed to analyze symptoms");
-
-      const data = await response.json();
-      setQuestions(data.questions || []);
       setStep(2);
-
-      toast({
-        title: "Analysis Complete",
-        description: "Please answer the follow-up questions",
-      });
     } catch (error) {
       console.error("Error analyzing symptoms:", error);
       toast({
@@ -99,98 +199,8 @@ const Dashboard = () => {
     }
   };
 
-  const handleAnswerChange = (question: string, answer: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [question]: answer,
-    }));
-  };
-
-  const handleSubmitAnswers = async () => {
-    if (Object.keys(answers).length < questions.length) {
-      toast({
-        title: "Incomplete",
-        description: "Please answer all questions for a better diagnosis",
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // API call to generate diagnosis
-      const response = await fetch("/api/gpt/generate-diagnosis", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          symptoms: [...selectedSymptoms, symptoms].filter(Boolean),
-          answers: Object.values(answers),
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to generate diagnosis");
-
-      const diagnosisData = await response.json();
-
-      // Store diagnosis in session storage to retrieve on results page
-      sessionStorage.setItem("diagnosisData", JSON.stringify(diagnosisData));
-
-      // Navigate to results page
-      navigate("/results");
-    } catch (error) {
-      console.error("Error generating diagnosis:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate diagnosis. Please try again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  interface ChatMessage {
-    sender: "AI" | "User";
-    message: string;
-  }
-
-  const handleSendMessage = async (message: string) => {
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("message", message);
-      if (file) {
-        formData.append("file", file);
-      }
-
-      const response = await fetch("/api/gpt/generate-followup", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to get response");
-
-      const data = await response.json();
-      setChatHistory([
-        ...chatHistory,
-        { sender: "AI", message: data.followup },
-      ]);
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get response. Please try again.",
-      });
-    } finally {
-      setLoading(false);
-      setFile(null);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white relative overflow-hidden w-full">
       <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -289,42 +299,65 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Follow-up Questions</CardTitle>
-                <CardDescription>
-                  Please answer these questions to get a more accurate
-                  assessment
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {questions.map((question, index) => (
-                    <div key={index} className="space-y-2">
-                      <Label htmlFor={`question-${index}`}>{question}</Label>
-                      <Textarea
-                        id={`question-${index}`}
-                        placeholder="Your answer..."
-                        value={answers[question] || ""}
-                        onChange={(e) =>
-                          handleAnswerChange(question, e.target.value)
-                        }
-                      />
-                    </div>
-                  ))}
+            <div className="min-h-screen p-6 w-screen">
+  <div className="max-w-4xl mx-auto bg-white text-black rounded-xl shadow-2xl overflow-hidden w-full">
+    <div className="bg-black text-white px-8 py-6 border-b border-gray-500 w-full">
+      <h2 className="text-3xl font-bold font-mono tracking-tight">⚫ Analysis Results</h2>
+    </div>
 
-                  <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => setStep(1)}>
-                      Back to Symptoms
-                    </Button>
-                    <Button onClick={handleSubmitAnswers} disabled={loading}>
-                      {loading ? "Generating..." : "Generate Assessment"}
-                      {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+    <div className="p-8 space-y-10">
+      {[
+        { title: "Possible Cause", content: analysisResults.cause },
+        { title: "Treatment Options", content: analysisResults.treatment },
+        { title: "Medication Suggestions", content: analysisResults.medication },
+        { title: "Home Remedies", content: analysisResults.homeRemedies },
+      ].map((section, index) => (
+        <div key={index} className="group">
+          <div className="flex items-center mb-4 w-full">
+            <div className="h-[2px] w-8 bg-black mr-3" />
+            <h3 className="text-xl font-semibold bg-black text-white px-4 py-2 rounded-md border border-black">
+              {section.title}
+            </h3>
+          </div>
+          <div className="ml-12 pl-4 border-l-2 border-black prose prose-lg max-w-none">
+            <ReactMarkdown
+              components={{
+                a: ({ node, ...props }) => (
+                  <a className="text-black underline hover:text-gray-700" {...props} />
+                ),
+                ul: ({ node, ...props }) => <ul className="space-y-2 pl-5" {...props} />, 
+                li: ({ node, ...props }) => (
+                  <li className="relative before:content-['•'] before:absolute before:-left-4 before:text-black" {...props} />
+                ),
+              }}
+            >
+              {section.content || "*No data available*"}
+            </ReactMarkdown>
+          </div>
+        </div>
+      ))}
+
+      <div className="flex flex-wrap gap-4 mt-12 pt-8 border-t border-black">
+        <Button
+          variant="outline"
+          onClick={() => setStep(1)}
+          className="px-8 py-3 bg-transparent border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-200"
+        >
+          ← Back to Symptoms
+        </Button>
+        <Button
+          onClick={() => navigate("/")}
+          disabled={loading}
+          className={`px-8 py-3 bg-black text-white hover:bg-gray-700 transition-all duration-200 ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          {loading ? "Processing..." : "Return to Home →"}
+        </Button>
+      </div>
+    </div>
+  </div>
+</div>
           )}
         </motion.div>
       </div>
