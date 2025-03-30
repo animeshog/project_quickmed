@@ -1,7 +1,7 @@
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Button } from "@/components/ui/button";
 import { Activity, ArrowRight, Heart, Pill } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion"; // Changed from motion/react
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -232,28 +232,87 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1 }}
         >
-          <h2 className="text-3xl font-bold mb-6 text-white">
-            Ready to Get Started?
+          <h2 className="text-4xl font-bold mb-6 text-white">
+            Take Control of Your Health Journey
           </h2>
-          <p className="text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
-            Join thousands of users who trust QuickMed for quick and reliable
-            health insights.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-white text-blue-800 hover:bg-blue-50 text-lg px-8"
-              onClick={() => navigate("/login")}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 max-w-6xl mx-auto">
+            {/* Feature cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white/10 backdrop-blur-sm p-6 rounded-xl"
             >
-              Sign In
-            </Button>
-            <Button
-              size="lg"
-              className="bg-transparent border-2 border-white text-white hover:bg-white/10 text-lg px-8"
-              onClick={() => navigate("/signup")}
+              <h3 className="text-xl font-semibold text-white mb-3">
+                Quick Analysis
+              </h3>
+              <p className="text-blue-100">
+                Get instant AI-powered health insights and personalized
+                recommendations.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white/10 backdrop-blur-sm p-6 rounded-xl"
             >
-              Create Account
-            </Button>
+              <h3 className="text-xl font-semibold text-white mb-3">
+                Smart Reports
+              </h3>
+              <p className="text-blue-100">
+                Upload medical reports for automated analysis and easy
+                understanding.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white/10 backdrop-blur-sm p-6 rounded-xl"
+            >
+              <h3 className="text-xl font-semibold text-white mb-3">
+                Local Solutions
+              </h3>
+              <p className="text-blue-100">
+                Find medications and remedies available specifically in India.
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="w-full sm:w-auto"
+            >
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-white text-blue-800 hover:bg-blue-50 text-lg px-8 py-6 rounded-xl font-semibold"
+                onClick={() => navigate("/login")}
+              >
+                Sign In to Your Account
+              </Button>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="w-full sm:w-auto"
+            >
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-transparent border-2 border-white text-white hover:bg-white/10 text-lg px-8 py-6 rounded-xl font-semibold"
+                onClick={() => navigate("/signup")}
+              >
+                Create Free Account
+              </Button>
+            </motion.div>
+          </div>
+
+          <div className="text-center text-sm text-blue-200/80 mt-12 max-w-2xl mx-auto">
+            <p>
+              QuickMed provides AI-powered health insights to help you make
+              informed decisions. While not a replacement for professional
+              medical advice, we're here to guide you on your health journey.
+            </p>
           </div>
         </motion.div>
 
