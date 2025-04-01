@@ -1,7 +1,7 @@
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Button } from "@/components/ui/button";
 import { Activity, ArrowRight, Heart, Pill } from "lucide-react";
-import { motion } from "framer-motion"; // Changed from motion/react
+import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {

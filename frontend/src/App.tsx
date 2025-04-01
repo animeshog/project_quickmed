@@ -10,11 +10,12 @@ import {
 } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
+//import NotFound from "./pages/NotFound";
 import Signup from "./pages/Signup";
 import Profile from "./pages/profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AnimatePresence } from "framer-motion";
+import History from "./pages/History";
 
 // Create a new QueryClient
 const queryClient = new QueryClient({
@@ -52,6 +53,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <History />
                 </ProtectedRoute>
               }
             />

@@ -1,37 +1,45 @@
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface CategorizedSymptomsProps {
-  symptoms: { [category: string]: string[] };
+  categories: Record<string, string[]>;
   selectedSymptoms: string[];
-  onSymptomToggle: (symptom: string) => void;
+  onToggleSymptom: (symptom: string) => void;
 }
 
-const CategorizedSymptoms: React.FC<CategorizedSymptomsProps> = ({
-  symptoms,
+const CategorizedSymptoms = ({
+  categories,
   selectedSymptoms,
-  onSymptomToggle,
-}) => {
+  onToggleSymptom,
+}: CategorizedSymptomsProps) => {
   return (
-    <div className="space-y-4">
-      {Object.entries(symptoms).map(([category, symptomList]) => (
-        <div key={category}>
-          <h3 className="text-sm font-medium mb-2">{category}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {symptomList.map((symptom) => (
-              <div key={symptom} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`symptom-${symptom}`}
-                  checked={selectedSymptoms.includes(symptom)}
-                  onCheckedChange={() => onSymptomToggle(symptom)}
-                />
-                <Label htmlFor={`symptom-${symptom}`}>{symptom}</Label>
-              </div>
-            ))}
+    <ScrollArea className="h-[400px] pr-4">
+      <div className="space-y-4">
+        {Object.entries(categories).map(([category, symptoms]) => (
+          <div key={category}>
+            <h3 className="font-semibold text-gray-700 mb-2">{category}</h3>
+            <div className="flex flex-wrap gap-2">
+              {symptoms.map((symptom) => (
+                <Button
+                  key={symptom}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onToggleSymptom(symptom)}
+                  className={cn(
+                    "border border-gray-200",
+                    selectedSymptoms.includes(symptom) &&
+                      "bg-blue-50 border-blue-200 text-blue-700"
+                  )}
+                >
+                  {symptom}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </ScrollArea>
   );
 };
 

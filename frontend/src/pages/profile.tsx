@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Activity, Home, LogOut, User, Mail, Calendar, Ruler, Weight, Droplet } from "lucide-react";
+import { Activity, Home, LogOut, User, Mail, Calendar, Ruler, Weight, Droplet, History as HistoryIcon } from "lucide-react";
 import { motion } from "motion/react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Logo from "@/components/Logo";
@@ -159,17 +159,23 @@ export default function Profile() {
                   />
                 </div>
 
-                <div className="flex gap-3 mt-6 pt-6 border-t">
+                <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t">
                   <Button
                     onClick={() => navigate("/dashboard")}
-                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+                    className="flex items-center justify-center bg-gray-900 hover:bg-gray-800 text-white w-full"
                   >
-                    <Home className="mr-2 h-4 w-4" /> Back to Dashboard
+                    <Home className="mr-2 h-4 w-4" /> Dashboard
+                  </Button>
+                  <Button
+                    onClick={() => navigate("/history")}
+                    className="flex items-center justify-center bg-gray-900 hover:bg-gray-800 text-white w-full"
+                  >
+                    <HistoryIcon className="mr-2 h-4 w-4" /> History
                   </Button>
                   <Button
                     onClick={handleLogout}
                     variant="outline"
-                    className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50"
+                    className="flex items-center justify-center border-gray-200 text-gray-700 hover:bg-gray-50 w-full"
                   >
                     <LogOut className="mr-2 h-4 w-4" /> Sign Out
                   </Button>

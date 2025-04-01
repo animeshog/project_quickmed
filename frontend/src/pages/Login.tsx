@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Lock, Mail } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion"; // Change this line
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -41,18 +41,36 @@ const Login = () => {
     setIsLoading(true);
     setError(false);
 
+    // Validate inputs before sending
+    if (!email || !password) {
+      setError(true);
+      toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please fill in both email and password",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "/api/auth/login",
         {
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password: password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
       const data = response.data;
+      console.log("Login response:", data); // Add logging
 
-      if (data.token) {
+      if (data.status === "success" && data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem(
           "userData",
@@ -64,27 +82,22 @@ const Login = () => {
         );
         toast({
           title: "Success",
-          description: "Logged in successfully",
+          description: data.message || "Logged in successfully",
         });
         navigate("/dashboard");
       }
     } catch (error: any) {
+      console.error("Login error details:", error.response?.data || error);
       setError(true);
-      setPassword(""); // Clear password on error
+      setPassword("");
 
-      if (error.response?.status === 400) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Credentials",
-          description: "Please check your email and password",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Something went wrong. Please try again.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description:
+          error.response?.data?.message ||
+          "Something went wrong. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }

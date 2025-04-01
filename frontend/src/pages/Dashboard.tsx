@@ -18,6 +18,14 @@ import {
   LogOut,
   UsersRound,
   FileText,
+  Plus,
+  Search,
+  MessageCircle,
+  AlignLeft,
+  Pill,
+  User,
+  Download,
+  Mail,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
@@ -27,6 +35,17 @@ import ReactMarkdown from "react-markdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CategorizedSymptoms from "@/components/CategorizedSymptoms";
 import Logo from "@/components/Logo";
+import { Input } from "@/components/ui/input";
+import AnimatedBackground from "@/components/AnimatedBackground";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import html2pdf from "html2pdf.js";
 
 const symptomCategories = {
   "General Symptoms": [
@@ -186,6 +205,10 @@ const Dashboard = () => {
   });
   const [file, setFile] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState("cause");
+  const [currentSymptom, setCurrentSymptom] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [results, setResults] = useState<AnalysisResults | null>(null);
+  const [allSymptoms, setAllSymptoms] = useState<string[]>([]);
 
   const handleSymptomToggle = (symptom: string) => {
     setSelectedSymptoms((prev) => {
@@ -198,41 +221,26 @@ const Dashboard = () => {
   };
 
   const handleAnalyzeSymptoms = async () => {
-    if (!symptoms && selectedSymptoms.length === 0) {
+    if (allSymptoms.length === 0) {
       toast({
         title: "Error",
-        description: "Please enter or select at least one symptom",
+        description: "Please add at least one symptom",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
-
+    setIsAnalyzing(true);
     try {
-      const allSymptoms = [
-        ...selectedSymptoms,
-        ...(symptoms ? [symptoms] : []),
-      ].filter(Boolean);
-
-      // Handle basic symptom analysis first
       const [causeRes, treatmentRes, medicationRes, homeRemediesRes] =
         await Promise.all([
-          axios.post("http://localhost:5000/api/gemini/cause", {
-            symptoms: allSymptoms,
-          }),
-          axios.post("http://localhost:5000/api/gemini/treatment", {
-            symptoms: allSymptoms,
-          }),
-          axios.post("http://localhost:5000/api/gemini/medication", {
-            symptoms: allSymptoms,
-          }),
-          axios.post("http://localhost:5000/api/gemini/home-remedies", {
-            symptoms: allSymptoms,
-          }),
+          axios.post("/api/gemini/cause", { symptoms: allSymptoms }),
+          axios.post("/api/gemini/treatment", { symptoms: allSymptoms }),
+          axios.post("/api/gemini/medication", { symptoms: allSymptoms }),
+          axios.post("/api/gemini/home-remedies", { symptoms: allSymptoms }),
         ]);
 
-      const results: AnalysisResults = {
+      const newResults: AnalysisResults = {
         cause: causeRes.data.responseText,
         treatment: treatmentRes.data.responseText,
         medication: medicationRes.data.responseText,
@@ -245,33 +253,46 @@ const Dashboard = () => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const fileRes = await axios.post(
-          "http://localhost:5000/api/gemini/upload",
-          formData,
-          {
+        console.log("Uploading file:", file.name, file.type, file.size);
+
+        try {
+          const fileRes = await axios.post("/api/gemini/upload", formData, {
             headers: {
               "Content-Type": "multipart/form-data",
             },
-          }
-        );
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total!
+              );
+              console.log("Upload progress:", percentCompleted + "%");
+            },
+          });
 
-        if (fileRes.data.success) {
-          results.fileAnalysis = fileRes.data.responseText;
+          if (fileRes.data.success) {
+            console.log("File analysis successful");
+            newResults.fileAnalysis = fileRes.data.responseText;
+          }
+        } catch (fileError) {
+          console.error("File upload error:", fileError);
+          toast({
+            title: "File Upload Error",
+            description: "Failed to analyze the medical report",
+            variant: "destructive",
+          });
         }
       }
 
-      setAnalysisResults(results);
-      setStep(2);
-    } catch (error: any) {
-      console.error("Error analyzing symptoms:", error);
+      setAnalysisResults(newResults);
+      setResults(newResults);
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.message || "Failed to analyze symptoms",
+        description: "Failed to analyze symptoms. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -289,6 +310,82 @@ const Dashboard = () => {
 
   const handleHomeClick = () => {
     navigate("/"); // Changed from dashboard to index
+  };
+
+  const handleAddSymptom = () => {
+    if (currentSymptom.trim()) {
+      setAllSymptoms([...allSymptoms, currentSymptom.trim()]);
+      setCurrentSymptom("");
+    }
+  };
+
+  const handleRemoveSymptom = (index: number) => {
+    setAllSymptoms(allSymptoms.filter((_, i) => i !== index));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    console.log("Selected file:", selectedFile); // Debug log
+
+    if (selectedFile) {
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "File size must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFile(selectedFile);
+      toast({
+        title: "File selected",
+        description: selectedFile.name,
+      });
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      await handleAnalyzeSymptoms();
+      setResults(analysisResults);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze symptoms",
+        variant: "destructive",
+      });
+    }
+    setIsAnalyzing(false);
+  };
+
+  const handleDownloadResults = async () => {
+    const element = document.getElementById("analysis-results");
+    if (element) {
+      const options = {
+        margin: 1,
+        filename: `medical-analysis-${new Date().toLocaleDateString()}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      };
+
+      try {
+        await html2pdf().set(options).from(element).save();
+        toast({
+          title: "Success",
+          description: "Report downloaded successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to download report",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const resultTabs = [
@@ -340,224 +437,280 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      <header className="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-blue-100">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Logo />
-          <nav className="flex gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleHomeClick}
-              className="hover:bg-blue-50"
-            >
-              <Home size={18} className="mr-2" />
-              Home
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleProfileClick}
-              className="hover:bg-blue-50"
-            >
-              <UsersRound size={18} className="mr-2" />
-              Profile
-            </Button>
-          </nav>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <AnimatedBackground intensity="low" />
+
+      {/* Header */}
+      <motion.header
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50"
+      >
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Logo />
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-600 hover:text-gray-900"
+                onClick={() => navigate("/profile")}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-600 hover:text-gray-900"
+                onClick={() => navigate("/")}
+              >
+                <Home className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
         </div>
-      </header>
+      </motion.header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-6xl mx-auto"
+          className="mb-8"
         >
-          <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">
-              Health Assessment
-            </h2>
-            {step === 2 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setStep(1)}
-                className="ml-auto"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            )}
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome to QuickMed
+          </h1>
+          <p className="text-gray-600">
+            Describe your symptoms for an AI-powered health analysis
+          </p>
+        </motion.div>
 
-          {step === 1 ? (
-            <Card className="bg-white/80 backdrop-blur-lg shadow-xl border-t-4 border-blue-500 transition-all duration-300">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50 border-b border-blue-100">
-                <CardTitle className="text-xl text-gray-800">
-                  Describe Your Symptoms
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Please enter your symptoms or select from the common options
-                  below
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <Label htmlFor="symptoms" className="text-gray-700">
-                      Symptom Description
-                    </Label>
-                    <Textarea
-                      id="symptoms"
-                      placeholder="Describe your symptoms in detail... (e.g., I have been experiencing..."
-                      className="min-h-[120px] bg-white/90 border-gray-200 focus:border-blue-300 focus:ring-blue-200"
-                      value={symptoms}
-                      onChange={(e) => setSymptoms(e.target.value)}
-                    />
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                      <Label className="text-blue-700 mb-2 block">
-                        Upload Medical Reports (Optional)
-                      </Label>
-                      <input
-                        type="file"
-                        onChange={(e) =>
-                          setFile(e.target.files ? e.target.files[0] : null)
-                        }
-                        className="text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-blue-500 file:text-white hover:file:bg-blue-600"
-                      />
-                    </div>
-                  </div>
+        {/* Main Analysis Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Symptom Input */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-2"
+          >
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-blue-100">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="h-5 w-5 text-blue-600" />
+                <h2 className="text-xl font-semibold">Symptom Analysis</h2>
+              </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Common Symptoms
-                    </h3>
-                    <CategorizedSymptoms
-                      symptoms={symptomCategories}
-                      selectedSymptoms={selectedSymptoms}
-                      onSymptomToggle={handleSymptomToggle}
-                    />
-                  </div>
-
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter a symptom..."
+                    value={currentSymptom}
+                    onChange={(e) => setCurrentSymptom(e.target.value)}
+                    className="flex-1"
+                  />
                   <Button
-                    onClick={handleAnalyzeSymptoms}
-                    disabled={loading}
-                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                    onClick={handleAddSymptom}
+                    disabled={!currentSymptom.trim()}
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Analyzing...
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        Analyze Symptoms
-                        <ArrowRight className="h-4 w-4" />
-                      </span>
-                    )}
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="min-h-0 p-6">
-              {" "}
-              {/* Changed min-h-screen to min-h-0 */}
-              <div className="max-w-4xl mx-auto">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-                  {" "}
-                  {/* Changed to md:grid-cols-5 */}
-                  {resultTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`p-4 rounded-xl border transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-[1.02]`
-                          : "bg-white hover:scale-[1.02]"
-                      }`}
+
+                {/* Symptom Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {allSymptoms.map((symptom, index) => (
+                    <motion.span
+                      key={index}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
                     >
-                      <div className="flex flex-col items-center gap-2 text-center">
-                        <span className="text-2xl">{tab.icon}</span>
-                        <span className="font-semibold">{tab.title}</span>
-                      </div>
-                    </button>
+                      {symptom}
+                      <button
+                        onClick={() => handleRemoveSymptom(index)}
+                        className="hover:text-blue-600"
+                      >
+                        ×
+                      </button>
+                    </motion.span>
                   ))}
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                  {resultTabs.map(
-                    (tab) =>
-                      activeTab === tab.id && (
-                        <div key={tab.id} className="animate-fadeIn">
-                          <div
-                            className={`bg-gradient-to-r ${tab.color} text-white px-8 py-6`}
-                          >
-                            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                              <span>{tab.icon}</span>
-                              {tab.title}
-                            </h2>
-                          </div>
-                          <div className={`p-8 ${tab.bgColor}`}>
-                            <div className="prose prose-lg max-w-none">
-                              <ReactMarkdown
-                                components={{
-                                  a: ({ ...props }) => (
-                                    <a
-                                      className="text-blue-600 hover:text-blue-800 underline"
-                                      {...props}
-                                    />
-                                  ),
-                                  ul: ({ ...props }) => (
-                                    <ul
-                                      className="space-y-3 list-disc pl-5"
-                                      {...props}
-                                    />
-                                  ),
-                                  li: ({ ...props }) => (
-                                    <li className="text-gray-700" {...props} />
-                                  ),
-                                  p: ({ ...props }) => (
-                                    <p
-                                      className="mb-4 text-gray-700 leading-relaxed"
-                                      {...props}
-                                    />
-                                  ),
-                                }}
-                              >
-                                {tab.content || "*No data available*"}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                  )}
+                {/* Add Categories Dialog */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      Browse Common Symptoms
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Select Symptoms by Category</DialogTitle>
+                    </DialogHeader>
+                    <CategorizedSymptoms
+                      categories={symptomCategories}
+                      selectedSymptoms={allSymptoms}
+                      onToggleSymptom={(symptom) => {
+                        if (allSymptoms.includes(symptom)) {
+                          handleRemoveSymptom(allSymptoms.indexOf(symptom));
+                        } else {
+                          setAllSymptoms([...allSymptoms, symptom]);
+                        }
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
 
-                  <div className="flex flex-wrap items-center justify-between p-8 bg-gray-50 border-t">
-                    <div className="flex gap-4 flex-wrap">
-                      <Button
-                        variant="outline"
-                        onClick={() => setStep(1)}
-                        className="flex items-center gap-2 hover:bg-gray-100"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Symptoms
-                      </Button>
-                      <Button
-                        onClick={handleDownloadReport}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Download Report
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                {/* File Upload Section */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="file-upload"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                  >
+                    <FileText className="h-5 w-5 text-gray-500" />
+                    <span className="text-gray-600">
+                      {file ? (
+                        <span className="text-blue-600 font-medium">
+                          {file.name}
+                        </span>
+                      ) : (
+                        "Upload medical report (JPEG, PNG, PDF up to 5MB)"
+                      )}
+                    </span>
+                  </label>
                 </div>
+
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || allSymptoms.length === 0}
+                  className="w-full bg-blue-600 hover:bg-blue-700 mt-4"
+                >
+                  {isAnalyzing ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>Analyzing...</span>
+                    </div>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      Analyze Symptoms
+                    </span>
+                  )}
+                </Button>
               </div>
             </div>
-          )}
-        </motion.div>
+          </motion.div>
+
+          {/* Right Column - Quick Actions */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4"
+          >
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-blue-100">
+              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => navigate("/history")}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Consultation History
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() =>
+                    (window.location.href = "mailto:support@quickmed.com")
+                  }
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Contact Support
+                </Button>
+              </div>
+            </div>
+
+            {/* Tips Section */}
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-3">Pro Tips</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-200">•</span>
+                  Be specific with your symptoms
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-200">•</span>
+                  Include duration of symptoms
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-200">•</span>
+                  Upload relevant medical reports
+                </li>
+              </ul>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Analysis Results Section */}
+        {results && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8"
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <h2 className="text-xl font-semibold">Analysis Results</h2>
+              <Button
+                onClick={handleDownloadResults}
+                className="flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Download Report
+              </Button>
+            </div>
+
+            <div id="analysis-results">
+              <Tabs defaultValue="cause" className="w-full">
+                <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {resultTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className={`${tab.bgColor} hover:bg-opacity-80 text-sm`}
+                    >
+                      <span className="mr-1">{tab.icon}</span>
+                      <span className="hidden sm:inline">{tab.title}</span>
+                      <span className="sm:hidden">
+                        {tab.title.split(" ")[0]}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {resultTabs.map((tab) => (
+                  <TabsContent key={tab.id} value={tab.id}>
+                    <Card className={`${tab.bgColor} bg-opacity-50`}>
+                      <CardHeader>
+                        <CardTitle>{tab.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ReactMarkdown>{tab.content}</ReactMarkdown>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );
