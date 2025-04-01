@@ -1,9 +1,9 @@
-import { Request, Response, Router } from "express";
+import { Request, Response, Router, NextFunction } from "express";
 
 const router = Router();
 
 // This route would connect to OpenAI API to process symptoms and generate questions
-router.post("/analyze-symptoms", async (req: Request, res: Response) => {
+router.post("/analyze-symptoms", async function(req: Request, res: Response, next: NextFunction) {
 	try {
 		const { symptoms } = req.body;
 
