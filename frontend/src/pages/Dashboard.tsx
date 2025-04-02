@@ -1,28 +1,14 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   Activity,
-  ArrowLeft,
-  ArrowRight,
   Home,
-  LogOut,
-  UsersRound,
   FileText,
   Plus,
   Search,
   MessageCircle,
-  AlignLeft,
-  Pill,
   User,
   Download,
   Mail,
@@ -35,9 +21,7 @@ import ReactMarkdown from "react-markdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CategorizedSymptoms from "@/components/CategorizedSymptoms";
 import Logo from "@/components/Logo";
-import { Input } from "@/components/ui/input";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -280,6 +264,16 @@ const Dashboard = () => {
             variant: "destructive",
           });
         }
+      }
+
+      // Save to history after successful analysis
+      if (results) {
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        await axios.post("/api/gemini/save-history", {
+          userId: userData._id,
+          symptoms: allSymptoms,
+          results: newResults,
+        });
       }
 
       setAnalysisResults(newResults);

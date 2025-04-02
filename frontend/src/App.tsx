@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Dashboard from "@/pages/Dashboard";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter as Router,
@@ -10,12 +9,12 @@ import {
 } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-//import NotFound from "./pages/NotFound";
 import Signup from "./pages/Signup";
 import Profile from "./pages/profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AnimatePresence } from "framer-motion";
 import History from "./pages/History";
+import Dashboard from "@/pages/Dashboard";
 
 // Create a new QueryClient
 const queryClient = new QueryClient({
@@ -34,12 +33,9 @@ const App = () => (
       <Router>
         <AnimatePresence mode="wait">
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-
-            {/* Protected Routes */}
             <Route
               path="/dashboard"
               element={
@@ -64,8 +60,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-
-            {/* 404 Route */}
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </AnimatePresence>
