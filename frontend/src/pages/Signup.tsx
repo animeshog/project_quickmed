@@ -37,16 +37,18 @@ const Signup = () => {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [bloodGroup, setBloodGroup] = useState("");
-  const [allergies, setAllergies] = useState("");
-  const [conditions, setConditions] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(false); // Reset error state at start
 
     if (!fullName || !email || !password || !confirmPassword) {
+      setError(true);
       toast({
         title: "Error",
         description: "Please fill in all the basic bits, yeah?",
@@ -55,6 +57,7 @@ const Signup = () => {
     }
 
     if (password !== confirmPassword) {
+      setError(true);
       toast({
         title: "Error",
         description: "Passwords don't match, you know the drill.",
@@ -62,10 +65,9 @@ const Signup = () => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", { // Assuming your backend register route is at /api/register
+      const response = await fetch("/api/auth/register", {
+        // Remove full URL, use proxy
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,8 +81,6 @@ const Signup = () => {
           height: Number(height), // Convert to number
           weight: Number(weight), // Convert to number
           bloodGroup: bloodGroup,
-          allergies: allergies ? allergies.split(',').map(item => item.trim()) : undefined, // Split into array, trim whitespace
-          conditions: conditions ? conditions.split(',').map(item => item.trim()) : undefined, // Split into array, trim whitespace
         }),
       });
 
@@ -91,16 +91,21 @@ const Signup = () => {
           title: "Account Created",
           description: "Sorted! Your account is up and running.",
         });
-        localStorage.setItem("token",data.token);
+        localStorage.setItem("token", data.token);
         navigate("/login");
       } else {
+        setError(true); // Set error state for non-201 responses
         toast({
-          title: "Error",
-          description: data.message || "Failed to create account. Have another go?",
+          variant: "destructive",
+          title: "Sign Up Failed",
+          description:
+            data.message || "Failed to create account. Please try again.",
         });
       }
     } catch (error) {
+      setError(true); // Set error state for network/other errors
       toast({
+        variant: "destructive",
         title: "Error",
         description: "Something went belly up. Check your connection, maybe?",
       });
@@ -202,7 +207,12 @@ const Signup = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth</Label>
-                    <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                    <Input
+                      id="dob"
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
@@ -212,7 +222,10 @@ const Signup = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {genders.map((genderOption) => (
-                          <SelectItem key={genderOption} value={genderOption.toLowerCase()}>
+                          <SelectItem
+                            key={genderOption}
+                            value={genderOption.toLowerCase()}
+                          >
                             {genderOption}
                           </SelectItem>
                         ))}
@@ -224,11 +237,23 @@ const Signup = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="height">Height (cm)</Label>
-                    <Input id="height" type="number" placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
+                    <Input
+                      id="height"
+                      type="number"
+                      placeholder="175"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="weight">Weight (kg)</Label>
-                    <Input id="weight" type="number" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                    <Input
+                      id="weight"
+                      type="number"
+                      placeholder="70"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bloodGroup">Blood Group</Label>
@@ -246,40 +271,28 @@ const Signup = () => {
                     </Select>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="allergies">Known Allergies (optional)</Label>
-                  <Input
-                    id="allergies"
-                    placeholder="e.g., Peanuts, Penicillin"
-                    value={allergies}
-                    onChange={(e) => setAllergies(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="conditions">
-                    Pre-existing Conditions (optional)
-                  </Label>
-                  <Input id="conditions" placeholder="e.g., Asthma, Diabetes" value={conditions} onChange={(e) => setConditions(e.target.value)} />
-                </div>
               </div>
-              <Button
-                type="submit"
-                className="w-full bg-blue-700 hover:bg-blue-800"
-                disabled={isLoading}
+              <motion.div
+                animate={error ? { x: [0, -10, 10, -10, 0] } : {}}
+                transition={{ duration: 0.4 }}
               >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                    Creating Account...
-                  </>
-                ) : (
-                  <>
-                    Create Account <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-700 hover:bg-blue-800"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      Create Account <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 border-t pt-4">
