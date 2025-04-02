@@ -1,18 +1,32 @@
 import axios from "axios";
+import dotenv from "dotenv";
 
-// Replace with your actual API key
-const API_KEY = "AIzaSyDJTJK8HtZgES_JtEZYTmyYxWFfi4qD51Q";
+dotenv.config();
 
-export default async function askGemini(query: string, params: string): Promise<void> {
+const API_KEY = process.env.GEMINI_API_KEY;
+const BASE_URL = "https://generativelanguage.googleapis.com";
+const API_VERSION = "v1beta";
+const MODEL = "gemini-2.0-flash";
+
+export default async function askGemini(
+  query: string,
+  params: string
+): Promise<string> {
+  if (!API_KEY) {
+    throw new Error(
+      "GEMINI_API_KEY is not configured in environment variables"
+    );
+  }
+
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      `${BASE_URL}/${API_VERSION}/models/${MODEL}:generateContent`,
       {
         contents: [
           {
             parts: [
               {
-                text: `${query} my params: ${params}`,
+                text: `${query}\n${params}`,
               },
             ],
           },
@@ -22,15 +36,24 @@ export default async function askGemini(query: string, params: string): Promise<
         headers: {
           "Content-Type": "application/json",
         },
+        params: {
+          key: API_KEY,
+        },
       }
     );
-    
 
-    // Log the response data
-    const GEM_RES =  response.data.candidates[0].content.parts[0].text;
-    return GEM_RES;
+    if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+
+    return response.data.candidates[0].content.parts[0].text;
   } catch (error) {
-    console.error("Error:", error);
+    if (axios.isAxiosError(error)) {
+      const errorMessage =
+        error.response?.data?.error?.message || "Unknown error";
+      throw new Error(`Gemini API Error: ${errorMessage}`);
+    }
+    throw error;
   }
 }
 

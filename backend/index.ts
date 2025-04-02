@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { medicationsRouter } from "./routes/medications";
 import { GeminiRouter } from "./routes/gemini";
 const app = express();
 const PORT = process.env.PORT || 5000; // Changed from 5000 to 5001
@@ -31,14 +30,20 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Add this logging middleware
+// Update the logging middleware to only log errors
 app.use((req, res, next) => {
+  if (
+    req.url.includes("/api/auth/chat-history") ||
+    req.url.includes("/api/auth/info")
+  ) {
+    next();
+    return;
+  }
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-app.use("/api/auth", userRouter); // Move this before other routes
-app.use("/api/medications", medicationsRouter);
+app.use("/api/auth", userRouter);
 app.use("/api/gemini", GeminiRouter);
 
 // Add catch-all route handler

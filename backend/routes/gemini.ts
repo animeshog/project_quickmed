@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import askGemini from "../controllers/geminiControllers";
 import multer from "multer";
-import path from "path";
+import { processFile } from "../services/pdfService";
 
 // Update multer configuration
 const storage = multer.memoryStorage();
@@ -34,13 +34,13 @@ const router = Router();
 // Endpoint for potential cause
 router.post("/cause", async (req: Request, res: Response) => {
   try {
-    const prompt = `Analyze these symptoms and respond ONLY with cause and brief explanation in this exact format: [Cause] | [Brief Explanation]. No other text.
+    const prompt = `Give a short, direct analysis of these symptoms in exactly this format:
+PRIMARY CAUSE: [one line cause]
+BRIEF EXPLANATION: [2-3 lines max]
+
 Symptoms: ${(req.body.symptoms as string[]).join(", ")}`;
 
-    const geminiResponse = await askGemini(
-      prompt,
-      req.body.symptoms.join(", ")
-    );
+    const geminiResponse = await askGemini(prompt);
 
     res.status(200).json({
       responseText: geminiResponse,
@@ -57,12 +57,13 @@ Symptoms: ${(req.body.symptoms as string[]).join(", ")}`;
 // Endpoint for treatment options
 router.post("/treatment", async (req: Request, res: Response) => {
   try {
-    const prompt = `Based on these symptoms, list ONLY treatment steps. No introductions or other text:
-Symptoms: ${(req.body.symptoms as string[]).join(", ")}
+    const prompt = `List 3 key treatment steps for these symptoms in bullet points. Keep each point to one line:
 
-1.
-2.
-3.`;
+• [Step 1]
+• [Step 2]
+• [Step 3]
+
+Symptoms: ${(req.body.symptoms as string[]).join(", ")}`;
 
     const geminiResponse = await askGemini(
       prompt,
@@ -84,13 +85,12 @@ Symptoms: ${(req.body.symptoms as string[]).join(", ")}
 // Endpoint for medication suggestions
 router.post("/medication", async (req: Request, res: Response) => {
   try {
-    const prompt = `List medications for these symptoms. Respond ONLY with medicines and dosages in this format:
-Symptoms: ${(req.body.symptoms as string[]).join(", ")}
+    const prompt = `List only 2 most relevant medications with basic info in this exact format:
 
-- [Medicine Name] | [Dosage] | [Duration]
-- [Medicine Name] | [Dosage] | [Duration]
+1. [Medicine Name] | [Dosage] | [Duration]
+2. [Medicine Name] | [Dosage] | [Duration]
 
-No other text.`;
+Symptoms: ${(req.body.symptoms as string[]).join(", ")}`;
 
     const geminiResponse = await askGemini(
       prompt,
@@ -112,13 +112,12 @@ No other text.`;
 // Endpoint for home remedies
 router.post("/home-remedies", async (req: Request, res: Response) => {
   try {
-    const prompt = `Provide home remedies for these symptoms. List ONLY remedies in this format:
-Symptoms: ${(req.body.symptoms as string[]).join(", ")}
+    const prompt = `Give 2 simple home remedies for these symptoms. Format as:
 
-1. [Remedy] | [Instructions]
-2. [Remedy] | [Instructions]
+1. [Remedy] | [Brief instructions]
+2. [Remedy] | [Brief instructions]
 
-No other text.`;
+Symptoms: ${(req.body.symptoms as string[]).join(", ")}`;
 
     const geminiResponse = await askGemini(
       prompt,
@@ -134,6 +133,31 @@ No other text.`;
     res.status(500).json({
       message: "Failed to analyze home remedies",
     });
+  }
+});
+
+// Add new endpoint to save consultation history
+router.post("/save-history", async (req: Request, res: Response) => {
+  try {
+    const { userId, symptoms, results } = req.body;
+
+    const history = new History({
+      userId,
+      symptoms,
+      diagnosis: results.cause,
+      treatment: results.treatment,
+      medications: results.medication,
+      homeRemedies: results.homeRemedies,
+      fileAnalysis: results.fileAnalysis,
+    });
+
+    await history.save();
+    res
+      .status(201)
+      .json({ success: true, message: "History saved successfully" });
+  } catch (error) {
+    console.error("Error saving history:", error);
+    res.status(500).json({ success: false, message: "Failed to save history" });
   }
 });
 
@@ -155,22 +179,23 @@ router.post(
         size: req.file.size,
       });
 
-      const fileContent = `data:${
-        req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
+      const fileContent = await processFile(req.file);
+      console.log("File content extracted successfully");
 
       const geminiResponse = await askGemini(
-        `Analyze this medical report and provide findings in this format:
+        `Analyze this medical report considering Indian healthcare standards and practices:
+
       KEY FINDINGS:
-      - List main observations
+      - Important observations (use Indian normal ranges where applicable)
       
       DIAGNOSIS:
-      - Primary diagnosis
-      - Secondary conditions
+      - Primary diagnosis with reference to prevalence in Indian population
+      - Secondary conditions common in Indian context
       
       RECOMMENDATIONS:
-      - Treatment plan
-      - Follow-up steps`,
+      - Treatment options available in India
+      - Follow-up steps considering Indian healthcare system
+      - Lifestyle modifications suitable for Indian context`,
         fileContent
       );
 
