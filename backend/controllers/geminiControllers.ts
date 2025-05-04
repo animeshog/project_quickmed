@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Replace with your actual API key
-const API_KEY = "AIzaSyDJTJK8HtZgES_JtEZYTmyYxWFfi4qD51Q";
+const API_KEY = "";
 
 export default async function askGemini(query: string, params: string): Promise<void> {
   try {
